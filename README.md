@@ -50,6 +50,3 @@ rancher_cluster_pod - возвращает id статуса (порядковы
 
 rancher_cluster_pod_container - возвращает id статуса (порядковый номер в списке начиная с 0):
 {"waiting", "running", "terminated"}
-
-
-## Metadata
