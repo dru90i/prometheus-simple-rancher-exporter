@@ -50,3 +50,9 @@ rancher_cluster_pod - возвращает id статуса (порядковы
 
 rancher_cluster_pod_container - возвращает id статуса (порядковый номер в списке начиная с 0):
 {"waiting", "running", "terminated"}
+
+rancher_cluster_node_stat - возвращает количество нод в каждом состоянии (label "status_node")
+
+rancher_cluster_pod_stat - возвращает количество подов в каждом состоянии (label "status_pod")
+
+rancher_cluster_container_stat - возвращает количество контейнеров в каждом состоянии (label "status_container")

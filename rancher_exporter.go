@@ -87,21 +87,26 @@ func getMetrics(w http.ResponseWriter, r *http.Request) {
 	for _, x := range cluster.Cluster {
 		if x.State == "active" {
 			var node = new(Nodes)
+			var stat = make(map[string]int)
 			getJSON(rancherURL+"/v3/clusters/"+x.ID+"/nodes?limit="+resourceLimit, accessKey, secretKey, &node)
 			for _, y := range node.Nodes {
 				var nodeRole string = ""
 				if y.Master {
 					nodeRole = "Master"
 				}
-				if y.Worker && !y.Unschedulable {
+				if y.Worker {
 					nodeRole = "Worker"
 				}
 				for i, z := range nodeStates {
 					if z == y.State {
 						fmt.Fprintln(w, "rancher_cluster_node{cluster=\""+x.Name+"\",id=\""+x.ID+"\",node=\""+y.Hostname+"\",node_role=\""+nodeRole+"\"}", i)
+						stat[y.State]++
 					}
 				}
 				fmt.Fprintln(w, "rancher_cluster_node_pods_count{cluster=\""+x.Name+"\",id=\""+x.ID+"\",node=\""+y.Hostname+"\"}", y.PodsInfo.Pods)
+			}
+			for i, n := range stat {
+				fmt.Fprintln(w, "rancher_cluster_node_stat{cluster=\""+x.Name+"\",id=\""+x.ID+"\",status_node=\""+i+"\"}", n)
 			}
 		}
 	}
@@ -113,6 +118,8 @@ func getMetrics(w http.ResponseWriter, r *http.Request) {
 	for _, x := range cluster.Cluster {
 		if x.State == "active" {
 			var pod = new(Pods)
+			var statP = make(map[string]int)
+			var statC = make(map[string]int)
 			getJSON(rancherURL+"/k8s/clusters/"+x.ID+"/v1/pods?limit="+resourceLimit, accessKey, secretKey, &pod)
 			for _, z := range pod.Pods {
 				for _, ns := range nsFilter {
@@ -120,8 +127,10 @@ func getMetrics(w http.ResponseWriter, r *http.Request) {
 						for i, m := range podStates {
 							if m == z.PodsStatus.State {
 								fmt.Fprintln(w, "rancher_cluster_pod{cluster=\""+x.Name+"\",id=\""+x.ID+"\",namespace_pod=\""+z.PodsInfo.Namespace+"\",name=\""+z.PodsInfo.Name+"\"}", i)
+								statP[z.PodsStatus.State]++
 							}
 						}
+
 						for _, p := range z.PodsStatus.ContInfo {
 							j, err := json.Marshal(p.State)
 							if err != nil {
@@ -131,13 +140,22 @@ func getMetrics(w http.ResponseWriter, r *http.Request) {
 							for i, m := range contStates {
 								if m == state && z.PodsStatus.State != "Succeeded" {
 									fmt.Fprintln(w, "rancher_cluster_pod_container{cluster=\""+x.Name+"\",id=\""+x.ID+"\",namespace_pod=\""+z.PodsInfo.Namespace+"\",name_pod=\""+z.PodsInfo.Name+"\",name_container=\""+p.Name+"\"}", i)
+									statC[state]++
 								}
 							}
 							fmt.Fprintln(w, "rancher_cluster_pod_container_count_restart{cluster=\""+x.Name+"\",id=\""+x.ID+"\",namespace_pod=\""+z.PodsInfo.Namespace+"\",name_pod=\""+z.PodsInfo.Name+"\",name_container=\""+p.Name+"\"}", p.RestartCount)
+
 						}
 					}
 				}
 			}
+			for i, n := range statP {
+				fmt.Fprintln(w, "rancher_cluster_pod_stat{cluster=\""+x.Name+"\",id=\""+x.ID+"\",status_pod=\""+i+"\"}", n)
+			}
+			for i, n := range statC {
+				fmt.Fprintln(w, "rancher_cluster_container_stat{cluster=\""+x.Name+"\",id=\""+x.ID+"\",status_container=\""+i+"\"}", n)
+			}
+
 		}
 	}
 
@@ -151,7 +169,7 @@ func getMetrics(w http.ResponseWriter, r *http.Request) {
 			var numEvent int = 0
 			for _, y := range event.Events {
 				if y.Type == "Warning" {
-					numEvent += y.Count
+					numEvent++
 				}
 			}
 			fmt.Fprintln(w, "rancher_cluster_events{cluster=\""+x.Name+"\",id=\""+x.ID+"\"}", numEvent)
