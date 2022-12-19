@@ -169,7 +169,11 @@ func getMetrics(w http.ResponseWriter, r *http.Request) {
 			var numEvent int = 0
 			for _, y := range event.Events {
 				if y.Type == "Warning" {
-					numEvent++
+					for _, ns := range nsFilter {
+						if ns == "all" || ns == y.Namespace.Namespace {
+							numEvent++
+						}
+					}
 				}
 			}
 			fmt.Fprintln(w, "rancher_cluster_events{cluster=\""+x.Name+"\",id=\""+x.ID+"\"}", numEvent)
