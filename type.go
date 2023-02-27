@@ -35,8 +35,9 @@ type PodsCount struct {
 
 type Pods struct {
 	Pods []struct {
-		PodsInfo   *Metadata `json:"metadata"`
-		PodsStatus *Status   `json:"status"`
+		PodsInfo   *Metadata      `json:"metadata"`
+		PodsStatus *Status        `json:"status"`
+		Spec       *Specification `json:"spec"`
 	} `json:"data"`
 }
 
@@ -48,6 +49,10 @@ type Metadata struct {
 type Status struct {
 	State    string        `json:"phase"`
 	ContInfo []*Containers `json:"containerStatuses"`
+}
+
+type Specification struct {
+	NodeName string `json:"nodeName"`
 }
 
 type Containers struct {
